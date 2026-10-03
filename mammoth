@@ -1,0 +1,149 @@
+-- すでに古いUIが開いている場合は削除して新しく作成
+if game:GetService("CoreGui"):FindFirstChild("MammothSimpleUI") then
+    game:GetService("CoreGui"):FindFirstChild("MammothSimpleUI"):Destroy()
+end
+
+-- =================================================================
+-- 1. GUI 画面の作成（スマホ対応・レスポンシブ）
+-- =================================================================
+local ScreenGui = Instance.new("ScreenGui")
+local MainFrame = Instance.new("Frame")
+local UICorner = Instance.new("UICorner")
+local UIStroke = Instance.new("UIStroke")
+local Title = Instance.new("TextLabel")
+local ToggleButton = Instance.new("TextButton")
+local ButtonCorner = Instance.new("UICorner")
+local CloseButton = Instance.new("TextButton")
+
+ScreenGui.Name = "MammothSimpleUI"
+ScreenGui.Parent = game:GetService("CoreGui")
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.ResetOnSpawn = false
+
+-- メイン画面（スマホでもタップしやすいサイズ感）
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.fromOffset(250, 140)
+MainFrame.Position = UDim2.new(0.5, -125, 0.4, -70)
+MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Parent = ScreenGui
+
+UICorner.CornerRadius = UDim.new(0, 12)
+UICorner.Parent = MainFrame
+
+UIStroke.Color = Color3.fromRGB(70, 70, 85)
+UIStroke.Thickness = 1.5
+UIStroke.Parent = MainFrame
+
+-- タイトル（ここをドラッグすると画面を動かせます）
+Title.Name = "Title"
+Title.Size = UDim2.new(1, -40, 0, 40)
+Title.Position = UDim2.fromOffset(10, 0)
+Title.BackgroundTransparency = 1
+Title.Text = "Mammoth Clicker"
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 15
+Title.TextColor3 = Color3.fromRGB(240, 240, 245)
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Parent = MainFrame
+
+-- 消去（完全に閉じる）ボタン
+CloseButton.Name = "CloseButton"
+CloseButton.Size = UDim2.fromOffset(30, 30)
+CloseButton.Position = UDim2.new(1, -35, 0, 5)
+CloseButton.BackgroundColor3 = Color3.fromRGB(210, 70, 70)
+CloseButton.Text = "X"
+CloseButton.Font = Enum.Font.GothamBold
+CloseButton.TextSize = 14
+CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseButton.Parent = MainFrame
+
+local CloseCorner = Instance.new("UICorner")
+CloseCorner.CornerRadius = UDim.new(0, 6)
+CloseCorner.Parent = CloseButton
+
+-- ON/OFF 切り替えボタン
+ToggleButton.Name = "ToggleButton"
+ToggleButton.Size = UDim2.new(1, -30, 0, 50)
+ToggleButton.Position = UDim2.new(0.5, 0, 0, 65)
+ToggleButton.AnchorPoint = Vector2.new(0.5, 0)
+ToggleButton.BackgroundColor3 = Color3.fromRGB(180, 50, 50) -- 初期：赤
+ToggleButton.Text = "START (OFF)"
+ToggleButton.Font = Enum.Font.GothamBold
+ToggleButton.TextSize = 16
+ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleButton.Parent = MainFrame
+
+ButtonCorner.CornerRadius = UDim.new(0, 8)
+ButtonCorner.Parent = ToggleButton
+
+-- =================================================================
+-- 2. スマホ・PC両対応のドラッグ機能スクリプト
+-- =================================================================
+local UserInputService = game:GetService("UserInputService")
+local dragging, dragInput, dragStart, startPos
+
+local function update(input)
+    local delta = input.Position - dragStart
+    MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+end
+
+MainFrame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = MainFrame.Position
+        
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+MainFrame.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        update(input)
+    end
+end)
+
+-- =================================================================
+-- 3. メインロジック（ご提示のコードをそのまま組み込み）
+-- =================================================================
+getgenv().MammothRunning = false
+
+-- 消去ボタンが押されたらUIとスクリプトを完全終了
+CloseButton.Activated:Connect(function()
+    getgenv().MammothRunning = false
+    ScreenGui:Destroy()
+end)
+
+-- ON/OFFの切り替え
+ToggleButton.Activated:Connect(function()
+    getgenv().MammothRunning = not getgenv().MammothRunning
+    if getgenv().MammothRunning then
+        ToggleButton.BackgroundColor3 = Color3.fromRGB(50, 180, 50) -- 緑
+        ToggleButton.Text = "STOP (ON)"
+    else
+        ToggleButton.BackgroundColor3 = Color3.fromRGB(180, 50, 50) -- 赤
+        ToggleButton.Text = "START (OFF)"
+    end
+end)
+
+-- 元のループコード（改変なし）
+task.spawn(function()
+    while task.wait(0.1) do
+        if getgenv().MammothRunning then
+            local args = {vector.create(9e30 , 9e30 , 9e30 )}
+            game:GetService("Players").LocalPlayer.Character:WaitForChild("Mammoth-Mammoth"):WaitForChild("LeftClickRemote"):FireServer(unpack(args))
+        end
+    end
+end)
